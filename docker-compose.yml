@@ -1,0 +1,17 @@
+services:
+  # SQL Server for the Vulnerable Sandbox demo.
+  # Exposed on host port 1407 (container 1433) to match the connection strings
+  # in Web/appsettings.Development.json and Web/appsettings.IntegrationTest.json.
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: VulnerableSandbox_Database
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "SuperSecure0!"
+    ports:
+      - "1407:1433"
+    volumes:
+      - vulnerable_sandbox_data:/var/opt/mssql
+
+volumes:
+  vulnerable_sandbox_data:
