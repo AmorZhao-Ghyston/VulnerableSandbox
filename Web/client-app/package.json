@@ -37,6 +37,7 @@
   "devDependencies": {
     "@ghyston/eslint-config-ghyston": "^3.0.1",
     "@ghyston/eslint-config-ghyston-react": "^3.0.0",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^16.0.0",
     "@types/react": "^19.0.0",

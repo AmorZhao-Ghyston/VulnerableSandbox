@@ -20,6 +20,7 @@ A .NET 10 + React demo used to illustrate common web vulnerabilities (SQL inject
 - Run `sqlcmd -S localhost,1407 -U sa -P 'SuperSecure0!' -C -i Database/setup.sql` to create the databases, schema and seed data. (This script is re-runnable. Run it again any time to reset to a clean slate.)
 - Run `dotnet restore` to install backend NuGet packages.
 - Run `npm install` in `Web/client-app` to install frontend NPM packages.
+- For local database connection: `Server=localhost,1407;Database=VulnerableSandbox;User Id=sa;Password=SuperSecure0!;Encrypt=False;TrustServerCertificate=True;`
 
 ## Running the Application
 
