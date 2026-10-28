@@ -12,6 +12,7 @@ Run:  .venv/Scripts/python.exe ppt-script.py
 """
 
 import os
+import sys
 import textwrap
 
 from PIL import Image
@@ -25,18 +26,17 @@ from pptx.oxml.ns import qn
 from pptx.util import Emu, Inches, Pt
 from lxml import etree
 
-OUTPUT_FILE = "OWASP-Top10-2025.pptx"
+# Optional first argument: where to write the deck (e.g. a preview copy)
+OUTPUT_FILE = sys.argv[1] if len(sys.argv) > 1 else "OWASP-Top10-2025.pptx"
 
-# Pictures. Topic intro slides look for "<code>.png" (e.g. A04.png); section
-# slides use SECTION_IMAGES. Anything missing falls back to PLACEHOLDER, so a
-# new picture only needs dropping into the folder with the right name.
+# Pictures. Topic intro slides use "<code>.png" (e.g. A04.png); the other
+# slides use PICTURES. Anything missing falls back to PLACEHOLDER, so a new
+# picture only needs dropping into the folder with the right name.
 PLACEHOLDER = "placeholder.png"
-SECTION_IMAGES = {
+PICTURES = {
     "intro": "part0-oh-wasp.jpg",  # What is OWASP?
-    "01": "part1-what-are-they.png",
-    "02": "part2-what-have-changed.png",
-    "03": "part4-what-can-we-do-about-them.png",  # Demo
-    "last": "part-last-cat-thinking.png",
+    "demo": "ducks.gif",
+    "discussion": "part-last-cat-thinking.png",
 }
 TITLE_STICKER = "duck.gif"
 
@@ -264,9 +264,10 @@ def content_slide(kicker, title):
     """
     slide = prs.slides.add_slide(BLANK)
     background(slide, WHITE)
-    kicker_mark(slide, MARGIN, 0.5)
-    text(slide, MARGIN + 0.26, 0.5, CONTENT_W, 0.3, kicker.upper(), size=12,
-         bold=True, color=BLUE, char_spacing=1.5)
+    if kicker:
+        kicker_mark(slide, MARGIN, 0.5)
+        text(slide, MARGIN + 0.26, 0.5, CONTENT_W, 0.3, kicker.upper(), size=12,
+             bold=True, color=BLUE, char_spacing=1.5)
     text(slide, MARGIN, 0.82, CONTENT_W, 0.75, title, size=36, bold=True, color=NAVY)
     footer(slide)
     return slide
@@ -288,8 +289,9 @@ def title_slide():
     text(slide, 0.9, 2.0, 6.2, 0.35, "LUNCH & LEARN", size=14, bold=True,
          color=ACCENT, char_spacing=3)
     text(slide, 0.9, 2.45, 6.4, 1.2, "OWASP Top 10", size=60, bold=True, color=WHITE)
-    text(slide, 0.9, 3.6, 6.2, 0.6, "An introduction to the 2025 list", size=26,
-         color=PALE)
+    text(slide, 0.9, 3.6, 6.2, 1.02, ["An introduction to the 2025 list",
+                                       "(and some other security topics)"],
+         size=26, color=PALE)
     text(slide, 0.9, 5.9, 6.2, 0.35, "Amor Zhao  ·  October 2026", size=14,
          color=MID)
 
@@ -311,25 +313,14 @@ def title_slide():
                  "since 2021, and a short demo at the end.")
 
 
-def section_slide(number, title, subtitle, kicker=None):
-    """Dark divider: kicker, title and subtitle on the left, the section's
-    picture (SECTION_IMAGES) on the right. The text block is centred vertically."""
-    slide = dark_slide()
-    corner_circles(slide, SLIDE_W - 0.4, SLIDE_H - 0.2)
-    picture(slide, image_for(SECTION_IMAGES.get(number)), 8.0, 1.25,
-            SLIDE_W - MARGIN - 8.0, 5.0)
-
-    x, w = 0.9, 6.6
-    n = _lines(title, 44, w, em=0.5)
-    block_h = 0.45 + n * 0.72 + 0.2 + 0.4
-    y = (SLIDE_H - block_h) / 2
-    text(slide, x, y, w, 0.35, kicker or f"SECTION {number}", size=14, bold=True,
-         color=ACCENT, char_spacing=3)
-    y += 0.45
-    text(slide, x, y, w, n * 0.72, title, size=44, bold=True, color=WHITE,
-         line_spacing=0.95)
-    y += n * 0.72 + 0.2
-    text(slide, x, y, w, 0.9, subtitle, size=20, color=PALE)
+def divider_slide(title, subtitle, image, kicker=None):
+    """Divider for the standalone parts (Demo, Discussion), in the same light
+    frame as the introduction: title top-left, subtitle below, picture right."""
+    slide = content_slide(kicker, title)
+    if subtitle:
+        text(slide, MARGIN, 2.0, 5.7, 1.2, subtitle, size=16, color=INK,
+             line_spacing=0.95)
+    picture(slide, image_for(image), 6.7, 1.9, SLIDE_W - MARGIN - 6.7, 4.75)
     return slide
 
 
@@ -346,7 +337,7 @@ def intro_slide():
         "Typically updated every 3–4 years.",
         "The latest edition is the 2025 list.",
     ], size=18, color=INK, space_after=12, line_spacing=1.1)
-    picture(slide, image_for(SECTION_IMAGES.get("intro")), 6.7, 3.05,
+    picture(slide, image_for(PICTURES.get("intro")), 6.7, 3.05,
             SLIDE_W - MARGIN - 6.7, 3.45, valign_top=True)
     notes(slide, "OWASP = Open Worldwide Application Security Project. "
                  "The Top 10 is typically refreshed every three to four years.")
@@ -371,11 +362,19 @@ def _lines(s, size, width, em=0.5):
     return len(textwrap.wrap(s, per_line)) or 1
 
 
+def _plain(p):
+    """Text of a paragraph that may be a list of plain or (text, style) runs."""
+    if isinstance(p, str):
+        return p
+    return "".join(r if isinstance(r, str) else r[0] for r in p)
+
+
 def picture(slide, path, x, y, max_w, max_h, align_right=True, valign_top=False,
-            radius=0.12):
+            landscape_centre=None, radius=0.12):
     """Place an image, unframed, scaled to fit max_w x max_h (any orientation).
 
     Returns the width used. Corners are softly rounded so it sits with the cards.
+    `landscape_centre` (a y position) centres wide pictures on that line instead.
     """
     with Image.open(path) as im:
         ratio = im.width / im.height
@@ -383,6 +382,8 @@ def picture(slide, path, x, y, max_w, max_h, align_right=True, valign_top=False,
     h = w / ratio
     px = x + (max_w - w) if align_right else x
     py = y if valign_top else y + (max_h - h) / 2
+    if landscape_centre is not None and ratio > 1:
+        py = landscape_centre - h / 2
     pic = slide.shapes.add_picture(path, Inches(px), Inches(py), Inches(w), Inches(h))
     geom = pic._element.spPr.find(qn("a:prstGeom"))
     geom.set("prst", "roundRect")
@@ -433,10 +434,12 @@ def topic_overview_slide(code, tagline, description, rank_2021, rank_2025,
     text(slide, title_x, row_y, right - title_x, badge_size, full_name, size=30,
          bold=True, color=NAVY, anchor=MSO_ANCHOR.MIDDLE)
 
-    # Below: text column on the left, picture on the right, tops aligned
+    # Below: text column on the left, picture on the right. Tall pictures line
+    # up with the tagline; wide ones sit in the middle of the text column.
     body_y, col_w, pic_x = 2.2, 4.1, 8.6
     picture(slide, topic_image(code), pic_x, body_y, right - pic_x,
-            6.55 - body_y, align_right=False, valign_top=True)
+            6.55 - body_y, align_right=False, valign_top=True,
+            landscape_centre=(body_y + 6.1) / 2)
 
     y = body_y
     n = _lines(tagline, 18, col_w, em=0.40)
@@ -447,7 +450,7 @@ def topic_overview_slide(code, tagline, description, rank_2021, rank_2025,
          line_spacing=1.1)
     y += n * 0.3 + 0.15
     if examples:
-        n = sum(_lines(e, 16, col_w - 0.32, em=0.43) for e in examples)
+        n = sum(_lines(_plain(e), 16, col_w - 0.32, em=0.43) for e in examples)
         h = n * 0.27 + 0.06 * len(examples)
         text(slide, x, y, col_w, h, list(examples), size=16, color=INK,
              bullet=True, bullet_color=ACCENT, space_after=4)
@@ -553,12 +556,21 @@ def code_slide(code, title, bad, good, note=""):
 
 
 
-def picture_slide(kicker, title, image, note=""):
-    """Light content frame with a single picture (e.g. the spare-time slide)."""
-    slide = content_slide(kicker, title)
-    picture(slide, image_for(image), MARGIN, 2.0, 5.0, 4.5, align_right=False)
-    if note:
-        notes(slide, note)
+def connector(slide, x1, y1, x2, y2, color, width, dash=False, stub=0.3):
+    """Row-to-row link: short horizontal stubs out of each block, a straight run
+    between them, a dot where it leaves and an arrowhead where it lands - so
+    even where links cross it's clear which row joins which."""
+    points = [(x1, y1), (x1 + stub, y1), (x2 - stub, y2), (x2, y2)]
+    for i, ((ax, ay), (bx, by)) in enumerate(zip(points, points[1:])):
+        seg = line(slide, ax, ay, bx, by, color=color, width=width, dash=dash)
+        ln = seg._element.spPr.find(qn("a:ln"))
+        ln.set("cap", "rnd")  # round caps so the segments join cleanly
+        if i == len(points) - 2:
+            etree.SubElement(ln, qn("a:tailEnd"), type="triangle", w="med",
+                             len="med")
+    d = 0.11
+    box(slide, x1 - d / 2, y1 - d / 2, d, d, fill=color, shape=MSO_SHAPE.OVAL,
+        radius=None)
 
 
 def comparison_slide():
@@ -566,48 +578,50 @@ def comparison_slide():
     list_2021 = [
         "Broken Access Control", "Cryptographic Failures", "Injection",
         "Insecure Design", "Security Misconfiguration",
-        "Vulnerable & Outdated Components",
-        "Identification & Authentication Failures",
-        "Software & Data Integrity Failures",
-        "Security Logging & Monitoring Failures", "Server-Side Request Forgery",
+        "Vulnerable and Outdated Components",
+        "Identification and Authentication Failures",
+        "Software and Data Integrity Failures",
+        "Security Logging and Monitoring Failures",
+        "Server Side Request Forgery (SSRF)",
     ]
     # 2021 index -> 2025 index, style
     moves = {0: (0, "same"), 1: (3, "down"), 2: (4, "down"), 3: (5, "down"),
              4: (1, "up"), 5: (2, "up"), 6: (6, "same"), 7: (7, "same"),
              8: (8, "same"), 9: (0, "merged")}
-    styles = {"up": (BLUE, 2.5, False), "down": (MID, 1.5, False),
-              "same": (PALE, 1.5, False), "merged": (MID, 1.5, True)}
+    styles = {"up": (BLUE, 2.5, False), "down": (MID, 2.0, False),
+              "same": (PALE, 2.5, False), "merged": (MID, 1.75, True)}
 
-    col_w, row_h, step, y0 = 4.85, 0.36, 0.42, 2.1
+    col_w, row_h, step, y0 = 4.55, 0.36, 0.42, 2.1
     left_x, right_x = MARGIN, SLIDE_W - MARGIN - col_w
     text(slide, left_x, 1.7, col_w, 0.35, "2021", size=18, bold=True, color=MUTED)
     text(slide, right_x, 1.7, col_w, 0.35, "2025", size=18, bold=True, color=NAVY)
 
-    def row(x, y, code, name, strong, tag=None):
-        badge_w = 0.6
-        b = box(slide, x, y, badge_w, row_h, fill=NAVY if strong else TINT,
-                radius=0.08)
-        label(b, code, size=12, bold=True, color=WHITE if strong else MUTED,
-              align=PP_ALIGN.CENTER)
-        text(slide, x + badge_w + 0.15, y, col_w - badge_w - 0.15, row_h, name,
-             size=13, color=INK if strong else MUTED, anchor=MSO_ANCHOR.MIDDLE)
+    def row(x, y, code, name, current, tag=None):
+        """2021 rows are light blocks; 2025 rows are dark blocks, white text."""
+        box(slide, x, y, col_w, row_h, fill=NAVY if current else TINT, radius=0.08)
+        text(slide, x + 0.15, y, 0.55, row_h, code, size=12, bold=True,
+             color=PALE if current else MID, anchor=MSO_ANCHOR.MIDDLE)
+        text(slide, x + 0.75, y, col_w - 0.85, row_h, name, size=12,
+             color=WHITE if current else MUTED, anchor=MSO_ANCHOR.MIDDLE)
         if tag:
-            t = box(slide, x + col_w - 0.75, y + 0.04, 0.75, row_h - 0.08,
-                    fill=ACCENT, radius=0.14)
-            label(t, tag, size=10, bold=True, color=NAVY, align=PP_ALIGN.CENTER)
+            t = box(slide, x + col_w - 0.68, y + 0.06, 0.58, row_h - 0.12,
+                    fill=ACCENT, radius=0.12)
+            label(t, tag, size=9, bold=True, color=NAVY, align=PP_ALIGN.CENTER)
 
     for i, name in enumerate(list_2021):
-        row(left_x, y0 + i * step, f"A{i + 1:02d}", name, strong=False)
+        row(left_x, y0 + i * step, f"A{i + 1:02d}", name, current=False)
     for i, (code, name, _) in enumerate(TOP_10):
-        tag = "NEW" if code in ("A03", "A10") else None
-        row(right_x, y0 + i * step, code, name, strong=True, tag=tag)
+        tag = "NEW" if code == "A10" else None
+        row(right_x, y0 + i * step, code, name, current=True, tag=tag)
 
-    # Connectors, drawn between the two columns
-    lx, rx = left_x + col_w + 0.1, right_x - 0.1
-    for src, (dst, kind) in moves.items():
+    # Links: quiet ones first so the moves sit on top
+    lx, rx = left_x + col_w + 0.08, right_x - 0.04
+    order = sorted(moves.items(), key=lambda m: ["same", "merged", "down", "up"]
+                   .index(m[1][1]))
+    for src, (dst, kind) in order:
         color, width, dash = styles[kind]
-        line(slide, lx, y0 + src * step + row_h / 2, rx, y0 + dst * step + row_h / 2,
-             color=color, width=width, dash=dash)
+        connector(slide, lx, y0 + src * step + row_h / 2, rx,
+                  y0 + dst * step + row_h / 2, color, width, dash)
 
     # Legend
     ly = 6.55
@@ -616,12 +630,12 @@ def comparison_slide():
                                          ("merged", "Merged in")]):
         color, width, dash = styles[kind]
         lx0 = MARGIN + i * 2.3
-        line(slide, lx0, ly + 0.11, lx0 + 0.45, ly + 0.11, color=color, width=width,
-             dash=dash)
-        text(slide, lx0 + 0.55, ly, 1.7, 0.25, caption, size=11, color=MUTED)
+        connector(slide, lx0 + 0.05, ly + 0.12, lx0 + 0.6, ly + 0.12, color, width,
+                  dash, stub=0.1)
+        text(slide, lx0 + 0.75, ly, 1.5, 0.25, caption, size=11, color=MUTED)
     notes(slide, "Misconfiguration jumps from 5 to 2: cloud platforms are more "
                  "complex and harder to configure. Supply chain grows out of "
-                 "'Vulnerable & Outdated Components'. Cryptographic failures drop "
+                 "'Vulnerable and Outdated Components'. Cryptographic failures drop "
                  "as browsers and frameworks enforce better defaults. SSRF is now "
                  "part of Broken Access Control.")
 
@@ -647,14 +661,13 @@ def trends_slide():
         text(slide, x + 0.35, y + 2.05, w - 0.7, 1.1, body, size=15, color=INK)
 
     band = box(slide, MARGIN, 5.55, CONTENT_W, 0.95, fill=NAVY)
-    label(band, [[("The shift   ", {"bold": True, "color": ACCENT}),
-                  ("Away from simple code bugs, towards the architecture of the "
-                   "product.", {"color": WHITE})]], size=18, margin=0.35)
+    label(band, "Shifting away from simple code bugs, and towards the architecture "
+                "of the product.", size=18, color=WHITE, margin=0.35)
 
 
 def references_slide(refs):
     """Plain list: number, title, link, hairline between rows. Room to grow."""
-    slide = content_slide("References", "Further reading")
+    slide = content_slide("The links", "References")
     row_h, y0 = 0.5, 1.95
     for i, (title, shown, url) in enumerate(refs):
         y = y0 + i * row_h
@@ -679,35 +692,16 @@ title_slide()
 intro_slide()
 contents_slide()
 
-section_slide("01", "The Top 10", "What each risk means")
-
 # A01 - Broken Access Control
 topic_overview_slide(
     "A01", "What can you do once you’re in?",
-    "Users can do things they shouldn’t be allowed to – because the "
+    "Users can do things they shouldn’t be allowed to because the "
     "system confuses who they are with what they’re permitted to do.",
     "#1", "#1",
+    examples=[[("Authentication", B), " checks who you are"],
+              [("Authorisation", B), " decides what you’re allowed to do"]],
     note="Still number one. Getting it right takes a real understanding of "
          "the system's permission model.")
-bullets_slide(
-    "A01", "Identity is not permission",
-    [[("Authentication", B), " checks who you are"],
-     [("Authorisation", B), " decides what you’re allowed to do"],
-     "It breaks when a valid login is treated as permission for everything",
-     "Checks belong on the server, on every request – not just in the UI"],
-    "A valid login is not a free pass.",
-    "Ask “can this user do this?”, not just “is this user logged in?”",
-    note="Authentication verifies identity; authorisation verifies permission. "
-         "Broken access control happens when the system sees a valid identity "
-         "and confuses it with permission.")
-steps_slide(
-    "A01", "Changing the ID in the URL",
-    [("Log in as yourself", "/user/1001/profile", "Your own profile loads, as expected."),
-     ("Edit the URL", "/user/1002/profile", "Swap your ID for someone else’s."),
-     ("It loads anyway", "200 OK", "No ownership check – another user’s data is shown.")],
-    "Check the user owns the record on every request, server-side – deny by default.",
-    note="Another common case: a normal user logs in, then reaches the admin "
-         "dashboard just by typing its URL.")
 
 # A02 - Security Misconfiguration
 topic_overview_slide(
@@ -715,25 +709,13 @@ topic_overview_slide(
     "The code may be fine, but the environment around it is configured in a "
     "way that leaves the doors open.",
     "#5", "#2",
+    examples=["Debug mode left switched on in production",
+              "Full error messages shown to the public",
+              [("Files such as ", {}), (".env", {"font": CODE_FONT, "color": NAVY}),
+               (" downloadable from the site", {})],
+              "Default passwords never changed"],
     note="Up from fifth. Cloud platforms (AWS, Azure...) have made "
          "configuration, especially permissions, much harder to get right.")
-bullets_slide(
-    "A02", "Leaving the doors open",
-    ["Debug mode left switched on in production",
-     "Full error messages shown to the public",
-     [("Files such as ", {}), (".env", {"font": CODE_FONT, "color": NAVY}),
-      (" downloadable from the site", {})],
-     "Default passwords never changed"],
-    "Secure code on an insecure setup is still insecure.",
-    "Harden every environment the same way – and check it automatically.",
-    note="The server is misconfigured and leaves the doors open. Think "
-         "environment rather than code.")
-steps_slide(
-    "A02", "An exposed config file",
-    [("Visit the site", "example.com", "Everything looks normal."),
-     ("Request the file", "/.env", "Try a well-known config file name."),
-     ("Secrets download", "DB_PASSWORD=...", "Database credentials and API keys are exposed.")],
-    "Only serve what’s meant to be public, and keep secrets out of the web root.")
 
 # A03 - Software Supply Chain Failures
 topic_overview_slide(
@@ -750,8 +732,8 @@ topic_overview_slide(
 # A04 - Cryptographic Failures
 topic_overview_slide(
     "A04", "Secrets that aren’t really secret",
-    "Sensitive data is exposed because it’s weakly protected – or "
-    "not protected at all.",
+    "Sensitive data is exposed because it’s weakly protected (or "
+    "not protected at all).",
     "#2", "#4",
     note="Down from second. Browsers warn about and force upgrades, and modern "
          "frameworks hash passwords properly by default.")
@@ -779,7 +761,7 @@ code_slide(
     "A05", "Building SQL from strings",
     ("VULNERABLE",
      'var sql =\n  "SELECT * FROM Users " +\n  "WHERE Name LIKE \'%" +\n'
-     '  request.Query + "%\'";\n\nFromSqlRaw(sql);',
+     '  request.Query + "%\'";\nFromSqlRaw(sql);',
      [("Input  ", B), ("' OR '1'='1", {"font": CODE_FONT, "color": BLUE}),
       ("  dumps the entire table", {})]),
     ("PARAMETERISED",
@@ -816,13 +798,9 @@ topic_overview_slide(
     "Code or data is accepted without verifying where it came from, or "
     "whether it’s been tampered with.",
     "#8", "#8",
+    examples=[[("How to prevent it: ", B), "sign artefacts and verify "
+               "checksums before anything is deployed"]],
     note="Failing to perform checksum or signature validation.")
-steps_slide(
-    "A08", "An unverified deployment",
-    [("CI builds a release", "build #482", "The artefact is produced as normal."),
-     ("The file is swapped", "app.zip (tampered)", "Replaced somewhere along the way."),
-     ("Deployed anyway", "deploy: success", "Nothing checks it’s the real artefact.")],
-    "Sign artefacts and verify checksums before anything is deployed.")
 
 # A09 - Security Logging & Alerting Failures
 topic_overview_slide(
@@ -845,11 +823,11 @@ topic_overview_slide(
          "mid-transaction. Leaked stack traces and code that 'fails open' "
          "(an exception that skips a permission check) are the classics.")
 
-section_slide("02", "What’s changed since 2021", "How the list has shifted and why")
 comparison_slide()
 trends_slide()
 
-section_slide("03", "Demo", "Placeholder slide for my vulnerable sandbox")
+divider_slide("Demo", "", PICTURES["demo"],
+              kicker="Placeholder slide for my vulnerable sandbox")
 
 references_slide([
     ("OWASP Top 10:2025", "owasp.org/Top10/2025", "https://owasp.org/Top10/2025/"),
@@ -859,14 +837,8 @@ references_slide([
     ("OWASP Foundation", "owasp.org", "https://owasp.org/"),
 ])
 
-section_slide("last", "Discussion", "Please talk about stuff … or not",
-              kicker="THE LAST SECTION")
-picture_slide(
-    "For emergency use if I ran out of things to talk about and there’s too "
-    "much time left",
-    [[("Is ", {}), ("Snow Crash", {"italic": True}),
-      (" an injection vulnerability?", {})]],
-    "part-last-cat-thinking.png")
+divider_slide("Discussion", "Let’s talk about stuff … (or not)",
+              PICTURES["discussion"], kicker="THE LAST SECTION")
 
 prs.save(OUTPUT_FILE)
 print(f"Saved {OUTPUT_FILE} ({len(prs.slides)} slides)")

