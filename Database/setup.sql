@@ -75,6 +75,19 @@ INSERT INTO Users (Name, Email, CreatedAt) VALUES
     ('admin',          'admin@acme.corp',          GETUTCDATE());
 GO
 
+CREATE TABLE Comments (
+    Id        INT IDENTITY(1000,1) PRIMARY KEY,
+    Author    NVARCHAR(MAX) NOT NULL,
+    Content   NVARCHAR(MAX) NOT NULL,
+    CreatedAt DATETIME      NOT NULL
+);
+GO
+
+INSERT INTO Comments (Author, Content, CreatedAt) VALUES
+    ('Alice Johnson', 'Great demo, thanks for sharing!', GETUTCDATE()),
+    ('Bob Mitchell',  'Looking forward to the security talk.', GETUTCDATE());
+GO
+
 /* ---------- Test database (schema only) ----------------------------------- */
 
 IF DB_ID('VulnerableSandboxTest') IS NOT NULL
@@ -111,6 +124,14 @@ CREATE TABLE Users (
     Id        INT IDENTITY(1000,1) PRIMARY KEY,
     Name      NVARCHAR(MAX) NOT NULL,
     Email     NVARCHAR(MAX) NOT NULL,
+    CreatedAt DATETIME      NOT NULL
+);
+GO
+
+CREATE TABLE Comments (
+    Id        INT IDENTITY(1000,1) PRIMARY KEY,
+    Author    NVARCHAR(MAX) NOT NULL,
+    Content   NVARCHAR(MAX) NOT NULL,
     CreatedAt DATETIME      NOT NULL
 );
 GO

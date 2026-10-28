@@ -1,4 +1,4 @@
-using FastEndpoints.Swagger;
+﻿using FastEndpoints.Swagger;
 using Web.Configuration.Extensions;
 using Web.Database;
 using Web.Infrastructure.Exceptions;
