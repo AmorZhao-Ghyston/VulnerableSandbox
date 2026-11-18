@@ -9,9 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" />
     <PackageReference Include="Ben.Demystifier" />
-    <PackageReference Include="FakeItEasy" />
     <PackageReference Include="FastEndpoints" />
-    <PackageReference Include="FastEndpoints.ClientGen" />
     <PackageReference Include="FastEndpoints.Swagger" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
     <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" />
@@ -20,7 +18,6 @@
     <PackageReference Include="NodaTime" />
     <PackageReference Include="NodaTime.Serialization.SystemTextJson" />
     <PackageReference Include="SimplerSoftware.EntityFrameworkCore.SqlServer.NodaTime" />
-    <PackageReference Include="Swashbuckle.AspNetCore" />
   </ItemGroup>
   <ItemGroup>
     <!-- Don't publish the SPA source files, but do show them in the project files list -->
@@ -38,8 +35,5 @@
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </ResolvedFileToPublish>
     </ItemGroup>
-  </Target>
-  <Target Name="ClientGen" AfterTargets="Build">
-    <Exec WorkingDirectory="$(RunWorkingDirectory)" Command="$(RunCommand) --generateclients true" />
   </Target>
 </Project>

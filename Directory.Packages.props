@@ -10,9 +10,7 @@
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <PackageVersion Include="Ben.Demystifier" Version="0.4.1" />
     <PackageVersion Include="Bogus" Version="35.6.5" />
-    <PackageVersion Include="FakeItEasy" Version="9.0.1" />
     <PackageVersion Include="FastEndpoints" Version="8.3.0" />
-    <PackageVersion Include="FastEndpoints.ClientGen" Version="8.3.0" />
     <PackageVersion Include="FastEndpoints.Swagger" Version="8.3.0" />
     <PackageVersion Include="FastEndpoints.Testing" Version="8.3.0" />
     <PackageVersion Include="Ghyston.editorconfig" Version="1.1.1" />
@@ -30,7 +28,6 @@
     <PackageVersion Include="Respawn" Version="7.0.0" />
     <PackageVersion Include="SimplerSoftware.EntityFrameworkCore.SqlServer.NodaTime" Version="10.0.1" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
-    <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.3.1" />
     <PackageVersion Include="System.Formats.Asn1" Version="10.0.14" />
     <PackageVersion Include="System.Runtime.Caching" Version="10.0.14" />
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />

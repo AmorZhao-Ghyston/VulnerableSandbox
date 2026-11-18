@@ -84,8 +84,8 @@ CREATE TABLE Comments (
 GO
 
 INSERT INTO Comments (Author, Content, CreatedAt) VALUES
-    ('Alice Johnson', 'Great demo, thanks for sharing!', GETUTCDATE()),
-    ('Bob Mitchell',  'Looking forward to the security talk.', GETUTCDATE());
+    ('Alice Johnson', '(compliments about a post article)', GETUTCDATE()),
+    ('Bob Mitchell',  '(fun facts on some interesting topic)', GETUTCDATE());
 GO
 
 /* ---------- Test database (schema only) ----------------------------------- */

@@ -18,9 +18,9 @@ namespace Web.Features.Demo;
 //  (http://169.254.169.254/...).
 //
 //  Set Safe=false (the toggle's "Vulnerable" mode) and point it at an internal
-//  address only the server can reach, e.g. http://localhost:5000/api/user/GetUsers
-//  or http://127.0.0.1:1407 (the DB port). Safe=true applies the fix: scheme
-//  allow-list + blocking private/loopback/link-local IPs after DNS resolution.
+//  address only the server can reach, e.g. https://localhost:5000/api/user/GetUsers
+//  (the app's own API over loopback). Safe=true applies the fix: scheme allow-list
+//  + blocking private/loopback/link-local IPs after DNS resolution.
 // ─────────────────────────────────────────────────────────────────────────────
 public static class FetchUrlPreview
 {
@@ -44,7 +44,7 @@ public static class FetchUrlPreview
                 return default!;
             }
 
-            using var client = httpClientFactory.CreateClient();
+            using var client = httpClientFactory.CreateClient("ssrf");
 
             // ❌ VULNERABLE (Safe=false): fetch whatever URL the user supplies.
             // ✅ FIXED (Safe=true): only reached after the allow/deny checks above.

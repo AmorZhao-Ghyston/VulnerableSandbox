@@ -51,7 +51,6 @@ public static class ChangeEmail
                 return default!;
             }
 
-            // ❌ No CSRF protection: the cookie alone is treated as intent.
             user.ChangeEmail(request.NewEmail);
             await dataContext.SaveChangesAsync(cancellationToken);
 

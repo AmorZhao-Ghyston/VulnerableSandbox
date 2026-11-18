@@ -6,11 +6,6 @@ using Web.Infrastructure.Exceptions;
 var builder = WebApplication.CreateBuilder(args);
 ConfigureServices(builder);
 
-if (builder.ShouldGenerateClients())
-{
-    await builder.GenerateTypescriptApiClientAndExitAsync();
-}
-
 var app = ConfigureApp(builder);
 await app.RunAsync();
 
@@ -23,7 +18,17 @@ static void ConfigureServices(WebApplicationBuilder builder)
     services.AddDbContext<DataContext>();
 
     // Used by the SSRF demo endpoint (Web/Features/Demo/FetchUrlPreview.cs).
-    services.AddHttpClient();
+    // Deliberately accepts any TLS certificate so the demo can reach the app's own
+    // https loopback endpoints (and other internal https targets).
+    services
+        .AddHttpClient("ssrf")
+        .ConfigurePrimaryHttpMessageHandler(() =>
+            new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback =
+                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+            }
+        );
 
     services.ConfigureNodaTime();
 
