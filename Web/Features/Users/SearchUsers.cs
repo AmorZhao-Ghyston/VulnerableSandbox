@@ -22,7 +22,7 @@ public static class SearchUsers
 
         public override async Task<Response> ExecuteAsync(Request request, CancellationToken cancellationToken)
         {
-            // Intentionally vulnerable to SQL injection — raw string concatenation, no parameterisation
+            // Intentionally vulnerable to SQL injection: raw string concatenation, no parameterisation.
             var sql = "SELECT Id, Name, Email, CreatedAt FROM Users WHERE Name LIKE '%" + request.Query + "%'";
 
             var users = await dataContext.Users.FromSqlRaw(sql).ToListAsync(cancellationToken);

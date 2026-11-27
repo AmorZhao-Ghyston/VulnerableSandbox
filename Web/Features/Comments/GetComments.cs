@@ -3,9 +3,7 @@ using Web.Database;
 
 namespace Web.Features.Comments;
 
-// Returns every stored comment, newest first. The content is returned exactly as
-// it was stored — the XSS fires on the client depending on how it is rendered
-// (see the frontend's Vulnerable vs Protected toggle).
+// Returns stored comments verbatim; the XSS fires client-side when they are rendered.
 public static class GetComments
 {
     public record Response(ICollection<Response.CommentResult> Comments)

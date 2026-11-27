@@ -3,9 +3,7 @@ using Web.Database;
 
 namespace Web.Features.Auth;
 
-// Returns the currently "logged-in" user, identified purely by the session
-// cookie. Used by the frontend to show who you are and your current email, so
-// the CSRF attack's effect (a changed email) is visible.
+// Current user from the session cookie; shows the CSRF attack's effect.
 public static class Me
 {
     public record Response(int Id, string Name, string Email);

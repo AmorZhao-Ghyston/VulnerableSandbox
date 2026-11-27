@@ -17,9 +17,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
     services.AddDbContext<DataContext>();
 
-    // Used by the SSRF demo endpoint (Web/Features/Demo/FetchUrlPreview.cs).
-    // Deliberately accepts any TLS certificate so the demo can reach the app's own
-    // https loopback endpoints (and other internal https targets).
+    // SSRF demo client: accepts any TLS cert to reach the app's own https loopback.
     services
         .AddHttpClient("ssrf")
         .ConfigurePrimaryHttpMessageHandler(() =>

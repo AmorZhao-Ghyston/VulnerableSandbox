@@ -3,19 +3,7 @@ using Web.Database;
 
 namespace Web.Features.Auth;
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  CSRF — the FIXED endpoint   (OWASP 2025: A01 Broken Access Control)
-// ─────────────────────────────────────────────────────────────────────────────
-//  Same action, but it requires a double-submit anti-forgery token: the caller
-//  must send the vs_csrf cookie's value back in an X-CSRF-TOKEN header, and the
-//  two must match. The legitimate frontend can do this (it can read its own
-//  cookie via JavaScript, same-origin). A cross-origin attacker CANNOT read the
-//  victim's cookie, so it can't produce the header — the forged request is
-//  rejected even though the session cookie still rides along.
-//
-//  (SameSite=Lax/Strict on the session cookie is the other half of the fix;
-//   either one alone defeats this attack, and real apps use both.)
-// ─────────────────────────────────────────────────────────────────────────────
+// CSRF fixed (A01): double-submit token the caller echoes in a header, which an attacker cannot read.
 public static class ChangeEmailProtected
 {
     public record Request(string NewEmail);
@@ -38,7 +26,7 @@ public static class ChangeEmailProtected
                 return default!;
             }
 
-            // ✅ Double-submit check: header must equal the CSRF cookie.
+            // Double-submit check: header must equal the CSRF cookie.
             var headerToken = HttpContext.Request.Headers["X-CSRF-TOKEN"].ToString();
             HttpContext.Request.Cookies.TryGetValue(AuthCookies.CsrfToken, out var cookieToken);
             if (string.IsNullOrEmpty(headerToken) || string.IsNullOrEmpty(cookieToken) || headerToken != cookieToken)

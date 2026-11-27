@@ -12,6 +12,5 @@ public class User(string name, string email, Instant createdAt)
     public static User CreateTestUser(int id, string name, string email, Instant createdAt) =>
         new(name, email, createdAt) { Id = id };
 
-    // Used by the CSRF demo (Web/Features/Demo/UpdateEmail.cs).
     public void ChangeEmail(string email) => Email = email;
 }

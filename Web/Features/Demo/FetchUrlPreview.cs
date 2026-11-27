@@ -1,27 +1,12 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 
-// This endpoint deliberately takes a URL as a string (it is bound from the query
-// string) and fetches it as given — that is the SSRF being demonstrated. The URI
-// design/usage analyzers below are intentionally not applicable here.
+// Fetching a user-supplied URL is the SSRF; the URI analyzers do not apply here.
 #pragma warning disable CA1054, CA1056, CA2234
 
 namespace Web.Features.Demo;
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  SSRF — Server-Side Request Forgery   (OWASP 2025: A01 Broken Access Control)
-// ─────────────────────────────────────────────────────────────────────────────
-//  An "import from URL" feature: the user hands over a URL and the SERVER fetches
-//  it. Because the fetch comes from inside the trust boundary, the attacker can
-//  reach things they never could directly — internal services, admin panels
-//  bound to localhost, or cloud metadata endpoints that hand out credentials
-//  (http://169.254.169.254/...).
-//
-//  Set Safe=false (the toggle's "Vulnerable" mode) and point it at an internal
-//  address only the server can reach, e.g. https://localhost:5000/api/user/GetUsers
-//  (the app's own API over loopback). Safe=true applies the fix: scheme allow-list
-//  + blocking private/loopback/link-local IPs after DNS resolution.
-// ─────────────────────────────────────────────────────────────────────────────
+// SSRF (A01): server fetches a user-supplied URL and can reach internal targets. Safe=true is the fix.
 public static class FetchUrlPreview
 {
     public record Request(string Url, bool Safe = false);
@@ -46,8 +31,7 @@ public static class FetchUrlPreview
 
             using var client = httpClientFactory.CreateClient("ssrf");
 
-            // ❌ VULNERABLE (Safe=false): fetch whatever URL the user supplies.
-            // ✅ FIXED (Safe=true): only reached after the allow/deny checks above.
+            // Safe=false fetches any URL; Safe=true only reaches here after the checks.
             using var upstream = await client.GetAsync(request.Url, cancellationToken);
 
             var body = await upstream.Content.ReadAsStringAsync(cancellationToken);
@@ -56,9 +40,7 @@ public static class FetchUrlPreview
             return new Response((int)upstream.StatusCode, upstream.Content.Headers.ContentType?.ToString() ?? "", preview);
         }
 
-        // Returns a reason string if the URL should be blocked, or null if allowed.
-        // A production version would also re-check after redirects and guard against
-        // DNS rebinding; this is enough to make the fix demonstrable.
+        // Returns a reason to block, or null to allow.
         private static async Task<string?> IsBlockedAsync(string url, CancellationToken cancellationToken)
         {
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))

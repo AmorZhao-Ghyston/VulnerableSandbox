@@ -3,20 +3,7 @@ using Web.Database;
 
 namespace Web.Features.Auth;
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  CSRF — the VULNERABLE endpoint   (OWASP 2025: A01 Broken Access Control)
-// ─────────────────────────────────────────────────────────────────────────────
-//  Changes the logged-in user's email. It trusts the session cookie and NOTHING
-//  else — no anti-forgery token, no Origin/Referer check. Combined with the
-//  SameSite=None session cookie (see AuthCookies), that means any other website
-//  the victim visits can make this change on their behalf: the browser attaches
-//  the cookie automatically and the server can't tell the request wasn't
-//  intended.
-//
-//  Demo: log in on the site, then open Lunch-and-learn/csrf-attacker-page.html
-//  (a different origin). Its hidden form POSTs here and your email changes.
-//  Compare with ChangeEmailProtected, which the same attack cannot beat.
-// ─────────────────────────────────────────────────────────────────────────────
+// CSRF vulnerable (A01): trusts the session cookie alone, no anti-forgery token.
 public static class ChangeEmail
 {
     public record Request(string NewEmail);
@@ -30,9 +17,7 @@ public static class ChangeEmail
             Post($"auth/{nameof(ChangeEmail)}");
             AllowAnonymous();
 
-            // Accept url-encoded form posts — this is exactly how a cross-site
-            // attacker's auto-submitting <form> reaches the endpoint without
-            // tripping a CORS preflight. JSON bodies are still accepted too.
+            // Accept url-encoded form posts, how a cross-site auto-submitting form reaches this.
             AllowFormData(urlEncoded: true);
         }
 

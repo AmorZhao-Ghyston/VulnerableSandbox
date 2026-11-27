@@ -4,18 +4,7 @@ using Web.Database;
 
 namespace Web.Features.Comments;
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Stored XSS — the write side   (OWASP 2025: A05 Injection)
-// ─────────────────────────────────────────────────────────────────────────────
-//  A classic "guestbook / comments" feature. Whatever the user types is stored
-//  verbatim — no sanitisation, no stripping of HTML. The danger only becomes
-//  real when this content is rendered unescaped (see the frontend, which uses
-//  dangerouslySetInnerHTML in its "Vulnerable" mode). Because the payload is
-//  persisted, it fires for EVERY visitor who later loads the page — that is what
-//  makes stored XSS worse than reflected.
-//
-//  Try posting:  <img src=x onerror="alert(document.cookie)">
-// ─────────────────────────────────────────────────────────────────────────────
+// Stored XSS write side (A05): comments saved exactly as typed, no sanitising.
 public static class AddComment
 {
     public record Request(string Author, string Content);
@@ -41,9 +30,7 @@ public static class AddComment
 
         public override async Task<Response> ExecuteAsync(Request request, CancellationToken cancellationToken)
         {
-            // ❌ Stored verbatim. No HTML encoding / sanitising of the content.
-            //    (A real fix would sanitise on input with a library like Ganss.Xss,
-            //     AND encode on output — never trust one layer alone.)
+            // Stored verbatim, no HTML encoding or sanitising.
             var comment = new Comment(request.Author, request.Content, clock.GetCurrentInstant());
             dataContext.Comments.Add(comment);
             await dataContext.SaveChangesAsync(cancellationToken);

@@ -3,9 +3,7 @@ using Web.Database;
 
 namespace Web.Features.Auth;
 
-// A deliberately trivial "login": pick an existing user by email, no password.
-// It sets a session cookie (so later requests are authenticated) plus a CSRF
-// token cookie. Enough to make the CSRF demo realistic without real auth.
+// Trivial passwordless login: sets the session and CSRF cookies.
 public static class Login
 {
     public record Request(string Email);
